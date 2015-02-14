@@ -33,7 +33,7 @@ end
 
 function OnDisable()
 	if IsConnected == true then
-		IRChatConnection:Close()
+		IRCDisconnect()
 	end
 	LOG( "Disabled IRChat!" )
 end
