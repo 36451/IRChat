@@ -4,11 +4,11 @@ function OnPlayerDestroyed(Player)
 	if Player == nil then
 		return false
 	end
+
+	SendFromEndpoint("in-game-leave", "", Player:GetName() .." has left the game.")
 	
-	if IsConnected == true and JoinedChannel == true then
-		IRChatConnection:Send("PRIVMSG " .. BotChannel .. " :" .. Player:GetName() .. " has left the game.\r\n")
-	end
 	return false
+	
 end
 
 function OnPlayerJoined(Player)
@@ -17,10 +17,10 @@ function OnPlayerJoined(Player)
 		return false
 	end
 	
-	if IsConnected == true and JoinedChannel == true then
-		IRChatConnection:Send("PRIVMSG " .. BotChannel .. " :" .. Player:GetName() .. " has joined the game.\r\n")
-	end
+	SendFromEndpoint("in-game-join", "", Player:GetName() .. " has joined the game.")
+	
 	return false
+	
 end
 
 function OnChat(Player, Message)
@@ -29,10 +29,10 @@ function OnChat(Player, Message)
 		return false
 	end
 	
-	if IsConnected == true and JoinedChannel == true then
-		IRChatConnection:Send("PRIVMSG " .. BotChannel .. " :(" .. Player:GetName() .. ") " .. Message .. "\r\n")
-	end
+	SendFromEndpoint("in-game-chat", Player:GetName(), Message)
+	
 	return false
+	
 end
 
 function OnKilling(Victim, Killer)
@@ -45,12 +45,12 @@ function OnKilling(Victim, Killer)
 		return false
 	end
 	
-	if IsConnected == true and JoinedChannel == true then
-		if Killer == nil then
-			IRChatConnection:Send("PRIVMSG " .. BotChannel .. " :" .. Victim:GetName() .. " died.\r\n")
-		else
-			IRChatConnection:Send("PRIVMSG " .. BotChannel .. " :" .. Victim:GetName() .. " has been killed by " .. Killer:GetName() .. ".\r\n")
-		end
+	if Killer == nil then
+		SendFromEndpoint("in-game-death", "", Victim:GetName() .. " died.")
+	else
+		SendFromEndpoint("in-game-death", "", Victim:GetName() .. " has been killed by " .. Killer:GetName() .. ".")
 	end
+
 	return false
+	
 end

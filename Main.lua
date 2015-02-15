@@ -25,7 +25,7 @@ function Initialize(Plugin)
 	RegisterPluginInfoConsoleCommands();
 
 	LOG("Initialised " .. Plugin:GetName() .. " v." .. Plugin:GetVersion())
-	if AutoConnectAfterStartup == true then
+	if AutoConnect == true then
 		IRCConnect()
 	end
 	return true
@@ -39,7 +39,7 @@ function OnDisable()
 end
 
 function split(s, delimiter)
-    result = {};
+    local result = {};
     for match in (s..delimiter):gmatch("(.-)"..delimiter) do
         table.insert(result, match);
     end
@@ -47,7 +47,7 @@ function split(s, delimiter)
 end
 
 function splitfrom(s, delimiter, startat)
-    result = "";
+    local result = "";
     local counter = 1
     for match in (s..delimiter):gmatch("(.-)"..delimiter) do
         if counter >= startat then
@@ -55,9 +55,27 @@ function splitfrom(s, delimiter, startat)
 		end
 		counter = counter + 1
     end
-    return result;
+    result = string.sub(result, 1, #result - #delimiter)
+    return result
 end
 
+function splitto(s, delimiter, endat)
+    local result = ""
+    local counter = 1
+    temp = split(s, delimiter)
+    --LOG(s)
+    for k, v in pairs(temp) do
+		--LOG(counter .. " " .. #result .. " " .. endat .. " " .. ((#temp)-endat))
+		if counter < ((#temp)-endat) then
+			result = result .. v .. delimiter
+		end
+		if counter == ((#temp)-endat) then
+			result = result .. v
+		end
+		counter = counter + 1
+    end
+    return result;
+end
 
 function IRCDisconnect()
 	if IsConnected == false then
@@ -138,7 +156,7 @@ function IRCConnect()
 							
 								if BotPassword ~= "" then
 									LOG("[IRChat] Authenticating with nickserv")
-									a_Link:Send("PRIVMSG nickserv :identify " .. BotPassword .. "\r\n")
+									SendToEndpoint("nickserv", "", "identify " .. BotPassword)
 								end
 								if debug then
 									LOG("[IRChat] Sending JOIN")
@@ -154,47 +172,53 @@ function IRCConnect()
 							
 							if shortsender == BotNick then
 								JoinedChannel = true
-								LOG("[IRChat] Joined " .. BotChannel)
+								LOG("[IRChat] Joined " .. split(args, " ")[1])
 							else
-								cRoot:Get():BroadcastChat(IRCTag .. shortsender .. " has joined " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-join", "", shortsender .. " has joined " .. BotChannel)
 							end
 							
 						end
 						
-						if command == "PART" or command == "QUIT" then
+						if command == "PART" then
 						
 							if shortsender == BotNick then
 								JoinedChannel = false
 								if debug then
-									LOG("[IRChat] Parted " .. BotChannel)
+									LOG("[IRChat] Parted " .. split(args, " ")[1])
 									LOG("[IRChat] Sending JOIN")
 								end
-								a_Link:Send("JOIN " .. BotChannel .. "\r\n")
+								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								cRoot:Get():BroadcastChat(IRCTag .. shortsender .. " has left " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", "", shortsender .. " has left " .. BotChannel)
 							end
 						
+						end
+						
+						if command == "QUIT" then 
+							if shortsender == BotNick then
+								JoinedChannel = false
+							else
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", "", shortsender .. " has left " .. BotChannel)
+							end
 						end
 						
 						if command == "KICK" then
 						
 							if split(args, " ")[2] == BotNick then
 								JoinedChannel = false
-								LOG("[IRChat] Client got kicked from " .. BotChannel .. " by " .. sender)
-								LOG("[IRChat] Rejoining " .. BotChannel)
+								LOG("[IRChat] Client got kicked from " .. split(args, " ")[1] .. " by " .. sender)
 								if debug then
-									LOG("[IRChat] Sending JOIN")
+									LOG("[IRChat] Rejoining " .. split(args, " ")[1])
 								end
-								a_Link:Send("JOIN " .. BotChannel .. "\r\n")
+								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								cRoot:Get():BroadcastChat(IRCTag .. split(args, " ")[2] .. " has been kicked from " .. BotChannel .. " by " .. shortsender .. "!")
+								SendFromEndpoint(split(args, " ")[1] .. "-kick", "", split(args, " ")[2] .. " has been kicked from " .. BotChannel .. " by " .. shortsender .. "!")
 							end
 							
 						end
 						
 						if command == "PRIVMSG" then
-							--LOG("(" .. shortsender .. ") " .. string.sub(splitfrom(args," ", 2), 2))
-							cRoot:Get():BroadcastChat(IRCTag .. "<" .. shortsender .. "> " .. string.sub(splitfrom(args," ", 2), 2))
+							SendFromEndpoint(split(args, " ")[1] .. "-chat", shortsender, string.sub(splitfrom(args," ", 2), 2))
 						end
 						
 						if command == "NOTICE" then
@@ -251,4 +275,64 @@ function IRCConnect()
 	end
 	
 	return true
+end
+
+function SendFromEndpoint(Endpoint, From, Message)
+
+	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" then
+		
+		local CmdResult = "Command not found."
+		
+		for cmd, info in pairs(g_PluginInfo.IRCCommands) do 
+			if cmd == split(string.sub(Message, 2), " ")[1] then
+				CmdResult = info.Handler(From, splitfrom(Message, " ", 2))
+			end
+		end
+		
+		SendToEndpoint(splitto(Endpoint,"-", 1), "", CmdResult)
+		
+		return true
+		
+	end
+	
+	for id, key in pairs(endpoints) do
+		if key[1] == Endpoint then
+			SendToEndpoint(key[2], From, Message)
+		end
+	end
+	
+	return true
+
+end
+
+function SendToEndpoint(Endpoint, From, Message)
+
+	if Endpoint == "in-game" then
+	
+		if From == "" then
+			cRoot:Get():BroadcastChat(IRCTag .. Message)
+		else
+			cRoot:Get():BroadcastChat(IRCTag .. "<" .. From .. "> " .. Message)
+		end
+		
+		return true
+		
+	else
+		
+		if IsConnected == true and JoinedChannel == true then
+			
+			if From == "" then
+				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Message .."\r\n")
+			else
+				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. "(" .. From .. ") " .. Message .."\r\n")
+			end
+			
+			return true
+			
+		end
+		
+		return false
+	
+	end
+	
 end
