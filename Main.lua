@@ -7,14 +7,13 @@ HookedIntoCore   = false
 function Initialize(Plugin)
 	Plugin:SetName( "IRChat" )
 	Plugin:SetVersion( 3 )
-	LOG("[" .. Plugin:GetName() .. "] Version " .. Plugin:GetVersion() .. ", initializing...")
+	
 	-- Register for all hooks needed
 	cPluginManager:AddHook(cPluginManager.HOOK_CHAT,                  OnChat)
 	cPluginManager:AddHook(cPluginManager.HOOK_PLAYER_DESTROYED,      OnPlayerDestroyed);
 	cPluginManager:AddHook(cPluginManager.HOOK_PLAYER_JOINED,         OnPlayerJoined)
 	cPluginManager:AddHook(cPluginManager.HOOK_KILLING,               OnKilling)
-	
-	-- Bind ingame commands:
+	cPluginManager:AddHook(cPluginManager.HOOK_PLUGINS_LOADED,        OnPluginsLoaded);
 	
 	-- Load the InfoReg shared library:
 	dofile(cPluginManager:GetPluginsPath() .. "/InfoReg.lua")
@@ -25,30 +24,13 @@ function Initialize(Plugin)
 	-- Bind all the console commands:
 	RegisterPluginInfoConsoleCommands();
 	
-	-- Hook into core's OnWebChat:
-	if HookIntoCore() == false then
-		-- Ugly hack for when core is being loaded after us
-		local foundworld = false
-		cRoot:Get():ForEachWorld(function(World)
-			if foundworld == true then
-				return false
-			end
-			foundworld = true
-			World:ScheduleTask(20, HookIntoCore)
-		end)
-	end
-	
-	-- Auto connect on startup if enabled
-	if AutoConnect == true then
-		IRCConnect()
-	end
-	
-	LOG("[" .. Plugin:GetName() .. "] Done")
+	LOG("[" .. Plugin:GetName() .. "] Version " .. Plugin:GetVersion() .. ", initialised")
 	
 	return true
 end
 
-function HookIntoCore(World) 
+function OnPluginsLoaded() 
+	-- Hook into Core's webchat callback
 	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
 	if CoreHandle ~= nil then
 		if CoreHandle:GetVersion() >= 15 then
@@ -65,17 +47,14 @@ function HookIntoCore(World)
 			LOGINFO("[IRChat] WebChat endpoint will be unavialable")
 		end
 	else
-		if World ~= nil then
-			LOGINFO("[IRChat] Error 2: Couldn't hook into Core")
-			LOGINFO("[IRChat] Reason: Core not found!")
-			LOGINFO("[IRChat] WebChat endpoint will be unavialable")
-		else
-			LOG("[IRChat] Hooking into Core has failed")
-			LOG("[IRChat] Retrying in 20 ticks")
-			return false
-		end
+		LOGINFO("[IRChat] Error 2: Couldn't hook into Core")
+		LOGINFO("[IRChat] Reason: Core not found!")
+		LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+	end	
+	-- Auto connect on startup if enabled
+	if AutoConnect == true then
+		IRCConnect()
 	end
-	return true
 end
 
 function OnDisable()
