@@ -1,12 +1,13 @@
 IRChatConnection = 0
-IsConnected = false
-JoinedChannel = false
-firstmode = 0
+firstmode        = 0
+IsConnected      = false
+JoinedChannel    = false
+HookedIntoCore   = false
 
 function Initialize(Plugin)
 	Plugin:SetName( "IRChat" )
-	Plugin:SetVersion( 1 )
-
+	Plugin:SetVersion( 3 )
+	LOG("[" .. Plugin:GetName() .. "] Version " .. Plugin:GetVersion() .. ", initializing...")
 	-- Register for all hooks needed
 	cPluginManager:AddHook(cPluginManager.HOOK_CHAT,                  OnChat)
 	cPluginManager:AddHook(cPluginManager.HOOK_PLAYER_DESTROYED,      OnPlayerDestroyed);
@@ -23,10 +24,56 @@ function Initialize(Plugin)
 	
 	-- Bind all the console commands:
 	RegisterPluginInfoConsoleCommands();
-
-	LOG("Initialised " .. Plugin:GetName() .. " v." .. Plugin:GetVersion())
+	
+	-- Hook into core's OnWebChat:
+	if HookIntoCore() == false then
+		-- Ugly hack for when core is being loaded after us
+		local foundworld = false
+		cRoot:Get():ForEachWorld(function(World)
+			if foundworld == true then
+				return false
+			end
+			foundworld = true
+			World:ScheduleTask(20, HookIntoCore)
+		end)
+	end
+	
+	-- Auto connect on startup if enabled
 	if AutoConnect == true then
 		IRCConnect()
+	end
+	
+	LOG("[" .. Plugin:GetName() .. "] Done")
+	
+	return true
+end
+
+function HookIntoCore(World) 
+	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
+	if CoreHandle ~= nil then
+		if CoreHandle:GetVersion() >= 15 then
+			if cPluginManager:CallPlugin("Core", "AddWebChatCallback", "IRChat", "OnWebChat") == true then
+				HookedIntoCore = true
+				LOG("[IRChat] Hooked into Core")
+			else 
+				LOGINFO("[IRChat] Error 1: Couldn't hook into Core")
+				LOGINFO("[IRChat] Reason: CallPlugin didn't return true")
+				LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+			end
+		else
+			LOGINFO("[IRChat] Your Core is outdated, the minimum version is 15")
+			LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+		end
+	else
+		if World ~= nil then
+			LOGINFO("[IRChat] Error 2: Couldn't hook into Core")
+			LOGINFO("[IRChat] Reason: Core not found!")
+			LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+		else
+			LOG("[IRChat] Hooking into Core has failed")
+			LOG("[IRChat] Retrying in 20 ticks")
+			return false
+		end
 	end
 	return true
 end
@@ -35,7 +82,7 @@ function OnDisable()
 	if IsConnected == true then
 		IRCDisconnect()
 	end
-	LOG( "Disabled IRChat!" )
+	LOG("[IRChat] Disabled")
 end
 
 function split(s, delimiter)
@@ -156,7 +203,7 @@ function IRCConnect()
 							
 								if BotPassword ~= "" then
 									LOG("[IRChat] Authenticating with nickserv")
-									SendToEndpoint("nickserv", "", "identify " .. BotPassword)
+									SendToEndpoint("nickserv", "", "", "identify " .. BotPassword)
 								end
 								if debug then
 									LOG("[IRChat] Sending JOIN")
@@ -174,7 +221,7 @@ function IRCConnect()
 								JoinedChannel = true
 								LOG("[IRChat] Joined " .. split(args, " ")[1])
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-join", "", shortsender .. " has joined " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-join", IRCTag, "", shortsender .. " has joined " .. BotChannel)
 							end
 							
 						end
@@ -189,7 +236,7 @@ function IRCConnect()
 								end
 								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-leave", "", shortsender .. " has left " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. BotChannel)
 							end
 						
 						end
@@ -198,7 +245,7 @@ function IRCConnect()
 							if shortsender == BotNick then
 								JoinedChannel = false
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-leave", "", shortsender .. " has left " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. BotChannel)
 							end
 						end
 						
@@ -212,13 +259,13 @@ function IRCConnect()
 								end
 								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-kick", "", split(args, " ")[2] .. " has been kicked from " .. BotChannel .. " by " .. shortsender .. "!")
+								SendFromEndpoint(split(args, " ")[1] .. "-kick", IRCTag, "", split(args, " ")[2] .. " has been kicked from " .. BotChannel .. " by " .. shortsender .. "!")
 							end
 							
 						end
 						
 						if command == "PRIVMSG" then
-							SendFromEndpoint(split(args, " ")[1] .. "-chat", shortsender, string.sub(splitfrom(args," ", 2), 2))
+							SendFromEndpoint(split(args, " ")[1] .. "-chat", IRCTag, shortsender, string.sub(splitfrom(args," ", 2), 2))
 						end
 						
 						if command == "NOTICE" then
@@ -277,7 +324,7 @@ function IRCConnect()
 	return true
 end
 
-function SendFromEndpoint(Endpoint, From, Message)
+function SendFromEndpoint(Endpoint, Tag, From, Message)
 
 	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" then
 		
@@ -289,7 +336,7 @@ function SendFromEndpoint(Endpoint, From, Message)
 			end
 		end
 		
-		SendToEndpoint(splitto(Endpoint,"-", 1), "", CmdResult)
+		SendToEndpoint(splitto(Endpoint,"-", 1), "", "", CmdResult)
 		
 		return true
 		
@@ -297,7 +344,7 @@ function SendFromEndpoint(Endpoint, From, Message)
 	
 	for id, key in pairs(endpoints) do
 		if key[1] == Endpoint then
-			SendToEndpoint(key[2], From, Message)
+			SendToEndpoint(key[2], Tag, From, Message)
 		end
 	end
 	
@@ -305,26 +352,44 @@ function SendFromEndpoint(Endpoint, From, Message)
 
 end
 
-function SendToEndpoint(Endpoint, From, Message)
+function SendToEndpoint(Endpoint, Tag, From, Message)
 
 	if Endpoint == "in-game" then
 	
 		if From == "" then
-			cRoot:Get():BroadcastChat(IRCTag .. Message)
+			cRoot:Get():BroadcastChat(Tag .. Message)
 		else
-			cRoot:Get():BroadcastChat(IRCTag .. "<" .. From .. "> " .. Message)
+			cRoot:Get():BroadcastChat(Tag .. "<" .. From .. "> " .. Message)
 		end
 		
 		return true
 		
-	else
+	end
+	
+	if Endpoint == "web-chat" then
+		
+		if HookedIntoCore == false then
+			return false
+		end
+
+		if From == "" then
+			cPluginManager:CallPlugin("Core", "WEBLOG", Tag .. Message)
+		else
+			cPluginManager:CallPlugin("Core", "WEBLOG", Tag .. "[" .. From .. "]: " .. Message)
+		end
+		
+		return true
+		
+	end
+	
+	if Endpoint ~= "in-game" and Endpoint ~= "web-chat" then
 		
 		if IsConnected == true and JoinedChannel == true then
 			
 			if From == "" then
-				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Message .."\r\n")
+				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .. Message .."\r\n")
 			else
-				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. "(" .. From .. ") " .. Message .."\r\n")
+				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .."(" .. From .. ") " .. Message .."\r\n")
 			end
 			
 			return true

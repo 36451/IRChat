@@ -22,9 +22,10 @@ BotChannel  = "#ChangeMe"
 
 --
 --This is the text added before every 
---message from irc is displayed in-game
+--message from irc/webchat is displayed
 --
 IRCTag      = "[IRC] "
+WebTag      = "[WEB] "
 
 --
 -- By Default, You don't need to change this
@@ -32,16 +33,26 @@ IRCTag      = "[IRC] "
 -- It's possible to do quite a lot with this 
 -- Even Channel to Channel irc bridges!
 --
---            {"From"    ,  "To"},        --
+
 endpoints   = {
-{BotChannel .. "-chat"   ,  "in-game"},
-{BotChannel .. "-kick"   ,  "in-game"},
-{BotChannel .. "-join"   ,  "in-game"},
-{BotChannel .. "-leave"  ,  "in-game"},
+--{"From"                ,  "To"      },    --
+--          IRC -> Minecraft          --
+{BotChannel .. "-chat"   ,  "in-game" },
+{BotChannel .. "-kick"   ,  "in-game" },
+{BotChannel .. "-join"   ,  "in-game" },
+{BotChannel .. "-leave"  ,  "in-game" },
+--          Minecraft -> IRC          --
 {"in-game-chat"          ,  BotChannel},
 {"in-game-join"          ,  BotChannel},
 {"in-game-leave"         ,  BotChannel},
 {"in-game-death"         ,  BotChannel},
+--          IRC -> Web chat           --
+{BotChannel .. "-chat"   ,  "web-chat"},
+{BotChannel .. "-kick"   ,  "web-chat"},
+{BotChannel .. "-join"   ,  "web-chat"},
+{BotChannel .. "-leave"  ,  "web-chat"},
+--          Web chat -> IRC           --
+{"web-chat-chat"          ,  BotChannel},
 }
 
 --Unless You have errors, don't change these:
