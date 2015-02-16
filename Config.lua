@@ -37,7 +37,7 @@ WebTag      = "[WEB] "
 --    + in-game  - minecraft chat
 --    + web      - webadmin chat
 --    + console  - server console
---    + anything that can be send to on irc, be it channel,
+--    + anything that can be send to on irc, be it a channel,
 --      service or user - just enter the name!
 --
 -- Avialable sources:

@@ -29,6 +29,12 @@ function Initialize(Plugin)
 	return true
 end
 
+function HookingError(PluginName, ErrorCode, ErrorDesc, ErrorResult)
+	LOGINFO("[IRChat] Couldn't hook into " .. PluginName)
+	LOGINFO("[IRChat] Error " .. ErrorCode .. ": " .. ErrorDesc)
+	LOGINFO("[IRChat] " .. ErrorResult)
+end
+
 function OnPluginsLoaded() 
 	-- Hook into Core's webchat callback
 	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
@@ -38,18 +44,13 @@ function OnPluginsLoaded()
 				HookedIntoCore = true
 				LOG("[IRChat] Hooked into Core")
 			else 
-				LOGINFO("[IRChat] Error 1: Couldn't hook into Core")
-				LOGINFO("[IRChat] Reason: CallPlugin didn't return true")
-				LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+				HookingError("Core", 1, "CallPlugin didn't return true", "Web sourcepoint might be unavialable")
 			end
 		else
-			LOGINFO("[IRChat] Your Core is outdated, the minimum version is 15")
-			LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web sourcepoint will be unavialable")
 		end
 	else
-		LOGINFO("[IRChat] Error 2: Couldn't hook into Core")
-		LOGINFO("[IRChat] Reason: Core not found!")
-		LOGINFO("[IRChat] WebChat endpoint will be unavialable")
+		HookingError("Core", 3, "Core not found", "Web sourcepoint will be unavialable")
 	end	
 	-- Auto connect on startup if enabled
 	if AutoConnect == true then
