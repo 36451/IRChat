@@ -33,6 +33,20 @@ WebTag      = "[WEB] "
 -- the bot, it's possible to do quite a lot with
 -- endpoints. Even Channel to Channel irc bridges!
 --
+-- Avialable endpoints:
+--    + in-game  - minecraft chat
+--    + web      - webadmin chat
+--    + console  - server console
+--    + anything that can be send to on irc, be it channel,
+--      service or user - just enter the name!
+--
+-- Avialable sources:
+--    + in-game-chat/join/leave/death - events from the server
+--    + web-chat                      - messages from webadmin chat
+--    + anything that can send you messages on irc 
+--      (#something-chat, UserName-chat, source in this case is "endpoint-chat"
+--      with the exception for channels, these have join/leave/kick too)
+--
 endpoints   = {
 --{"From"                ,  "To"      },
 --          IRC -> Minecraft          --
@@ -46,15 +60,16 @@ endpoints   = {
 {"in-game-leave"         ,  BotChannel},
 {"in-game-death"         ,  BotChannel},
 --          IRC -> Web chat           --
-{BotChannel .. "-chat"   ,  "web-chat"},
-{BotChannel .. "-kick"   ,  "web-chat"},
-{BotChannel .. "-join"   ,  "web-chat"},
-{BotChannel .. "-leave"  ,  "web-chat"},
+{BotChannel .. "-chat"   ,  "web"     },
+{BotChannel .. "-kick"   ,  "web"     },
+{BotChannel .. "-join"   ,  "web"     },
+{BotChannel .. "-leave"  ,  "web"     },
 --          Web chat -> IRC           --
-{"web-chat-chat"         ,  BotChannel},
+{"web-chat"              ,  BotChannel},
 --          NickServ -> Console       --
 {"nickserv-chat"         ,  "console" },
 }
+
 
 --Unless You have errors, don't change these:
 --If You do, in most cases you want to only

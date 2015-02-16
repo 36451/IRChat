@@ -312,7 +312,7 @@ function SendFromEndpoint(Endpoint, Tag, From, Message)
 		Endpoint = From .. "-chat"
 	end
 	
-	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" and splitto(Endpoint,"-", 1) ~= "web-chat" then
+	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" and splitto(Endpoint,"-", 1) ~= "web" then
 		
 		local CmdResult = "Command not found."
 		
@@ -367,7 +367,7 @@ function SendToEndpoint(Endpoint, Tag, From, Message)
 	end
 	
 	-- Webadmin chat endpoint
-	if Endpoint == "web-chat" then
+	if Endpoint == "web" then
 		
 		if HookedIntoCore == false then
 			return false

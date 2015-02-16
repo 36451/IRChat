@@ -37,7 +37,7 @@ end
 
 function OnWebChat(Player, Message)
 	
-	SendFromEndpoint("web-chat-chat", WebTag, Player, Message)
+	SendFromEndpoint("web-chat", WebTag, Player, Message)
 	
 	return false
 	
