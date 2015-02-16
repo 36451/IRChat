@@ -180,7 +180,7 @@ function IRCConnect()
 							
 								if BotPassword ~= "" then
 									LOG("[IRChat] Authenticating with nickserv")
-									SendToEndpoint("nickserv", "", "", "identify " .. BotPassword)
+									IRChatConnection:Send("PRIVMSG nickserv :identify " .. BotPassword .."\r\n")
 								end
 								if debug then
 									LOG("[IRChat] Sending JOIN")
@@ -306,8 +306,13 @@ end
 --This can actaully be utilized by other plugins for integration with irc
 --
 function SendFromEndpoint(Endpoint, Tag, From, Message)
-
-	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" then
+	
+	if splitto(Endpoint,"-", 1) == BotNick then
+		-- Fix for private messages on irc
+		Endpoint = From .. "-chat"
+	end
+	
+	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" and splitto(Endpoint,"-", 1) ~= "web-chat" then
 		
 		local CmdResult = "Command not found."
 		
@@ -342,6 +347,19 @@ function SendToEndpoint(Endpoint, Tag, From, Message)
 			cRoot:Get():BroadcastChat(Tag .. Message)
 		else
 			cRoot:Get():BroadcastChat(Tag .. "<" .. From .. "> " .. Message)
+		end
+		
+		return true
+		
+	end
+	
+	-- Console endpoint
+	if Endpoint == "console" then
+	
+		if From == "" then
+			LOG("[IRChat] " .. Tag .. Message)
+		else
+			LOG("[IRChat] " .. Tag .. "<" .. From .. "> " .. Message)
 		end
 		
 		return true

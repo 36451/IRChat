@@ -28,14 +28,13 @@ IRCTag      = "[IRC] "
 WebTag      = "[WEB] "
 
 --
--- By Default, You don't need to change this
--- Hovewer, if you want to customize the bot
--- It's possible to do quite a lot with this 
--- Even Channel to Channel irc bridges!
+-- By Default, You don't need to change anything
+-- below this. Hovewer, if you want to customize 
+-- the bot, it's possible to do quite a lot with
+-- endpoints. Even Channel to Channel irc bridges!
 --
-
 endpoints   = {
---{"From"                ,  "To"      },    --
+--{"From"                ,  "To"      },
 --          IRC -> Minecraft          --
 {BotChannel .. "-chat"   ,  "in-game" },
 {BotChannel .. "-kick"   ,  "in-game" },
@@ -52,7 +51,9 @@ endpoints   = {
 {BotChannel .. "-join"   ,  "web-chat"},
 {BotChannel .. "-leave"  ,  "web-chat"},
 --          Web chat -> IRC           --
-{"web-chat-chat"          ,  BotChannel},
+{"web-chat-chat"         ,  BotChannel},
+--          NickServ -> Console       --
+{"nickserv-chat"         ,  "console" },
 }
 
 --Unless You have errors, don't change these:
