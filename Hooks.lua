@@ -25,6 +25,10 @@ end
 
 function OnChat(Player, Message)
 	
+	if Player == nil then
+		return false
+	end
+	
 	SendFromEndpoint("in-game-chat", "", Player:GetName(), Message)
 	
 	return false
@@ -32,10 +36,6 @@ function OnChat(Player, Message)
 end
 
 function OnWebChat(Player, Message)
-
-	if Player == nil then
-		return false
-	end
 	
 	SendFromEndpoint("web-chat-chat", WebTag, Player, Message)
 	

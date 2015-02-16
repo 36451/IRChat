@@ -1,5 +1,5 @@
-IRChatConnection = 0
-firstmode        = 0
+IRChatConnection = false
+FirstMode        = false
 IsConnected      = false
 JoinedChannel    = false
 HookedIntoCore   = false
@@ -89,9 +89,7 @@ function splitto(s, delimiter, endat)
     local result = ""
     local counter = 1
     temp = split(s, delimiter)
-    --LOG(s)
     for k, v in pairs(temp) do
-		--LOG(counter .. " " .. #result .. " " .. endat .. " " .. ((#temp)-endat))
 		if counter < ((#temp)-endat) then
 			result = result .. v .. delimiter
 		end
@@ -127,7 +125,7 @@ function IRCConnect()
 	
 	LOG("[IRChat] Connecting to " .. Host .. ":" .. Port .. "")
 	
-	firstmode = 0
+	FirstMode = false
 
 	local Callbacks =
 	{
@@ -178,7 +176,7 @@ function IRCConnect()
 						
 						if command == "MODE" then
 							
-							if firstmode == 0 then
+							if FirstMode == false then
 							
 								if BotPassword ~= "" then
 									LOG("[IRChat] Authenticating with nickserv")
@@ -188,7 +186,7 @@ function IRCConnect()
 									LOG("[IRChat] Sending JOIN")
 								end
 								a_Link:Send("JOIN " .. BotChannel .. "\r\n")
-								firstmode = 1 
+								FirstMode = true 
 							
 							end
 							
@@ -303,6 +301,10 @@ function IRCConnect()
 	return true
 end
 
+--
+--Sends something from endpoint
+--This can actaully be utilized by other plugins for integration with irc
+--
 function SendFromEndpoint(Endpoint, Tag, From, Message)
 
 	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" then
@@ -332,7 +334,8 @@ function SendFromEndpoint(Endpoint, Tag, From, Message)
 end
 
 function SendToEndpoint(Endpoint, Tag, From, Message)
-
+	
+	-- In-game chat endpoint
 	if Endpoint == "in-game" then
 	
 		if From == "" then
@@ -345,6 +348,7 @@ function SendToEndpoint(Endpoint, Tag, From, Message)
 		
 	end
 	
+	-- Webadmin chat endpoint
 	if Endpoint == "web-chat" then
 		
 		if HookedIntoCore == false then
@@ -361,22 +365,17 @@ function SendToEndpoint(Endpoint, Tag, From, Message)
 		
 	end
 	
-	if Endpoint ~= "in-game" and Endpoint ~= "web-chat" then
-		
-		if IsConnected == true and JoinedChannel == true then
-			
-			if From == "" then
-				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .. Message .."\r\n")
-			else
-				IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .."(" .. From .. ") " .. Message .."\r\n")
-			end
-			
-			return true
-			
-		end
-		
+	-- Neither of the above, must be irc
+	if IsConnected == false or JoinedChannel == false then
 		return false
-	
 	end
+	
+	if From == "" then
+		IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .. Message .."\r\n")
+	else
+		IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .."(" .. From .. ") " .. Message .."\r\n")
+	end
+	
+	return true
 	
 end
