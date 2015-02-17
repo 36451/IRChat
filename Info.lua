@@ -1,6 +1,4 @@
-
 -- Info.lua
-
 -- Implements the g_PluginInfo standard plugin description
 
 g_PluginInfo =

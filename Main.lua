@@ -1,5 +1,4 @@
 IRChatConnection = false
-FirstMode        = false
 IsConnected      = false
 JoinedChannel    = false
 HookedIntoCore   = false
@@ -44,13 +43,13 @@ function OnPluginsLoaded()
 				HookedIntoCore = true
 				LOG("[IRChat] Hooked into Core")
 			else 
-				HookingError("Core", 1, "CallPlugin didn't return true", "Web sourcepoint might be unavialable")
+				HookingError("Core", 1, "CallPlugin didn't return true", "Web endpoint will be unavialable")
 			end
 		else
-			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web sourcepoint will be unavialable")
+			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web endpoint will be unavialable")
 		end
 	else
-		HookingError("Core", 3, "Core not found", "Web sourcepoint will be unavialable")
+		HookingError("Core", 3, "Core not found", "Web endpoint will be unavialable")
 	end	
 	-- Auto connect on startup if enabled
 	if AutoConnect == true then
@@ -125,8 +124,6 @@ function IRCConnect()
 	end
 	
 	LOG("[IRChat] Connecting to " .. Host .. ":" .. Port .. "")
-	
-	FirstMode = false
 
 	local Callbacks =
 	{
@@ -175,22 +172,15 @@ function IRCConnect()
 							LOG("[IRChat] Command(" .. sender .. "): " .. command .. " " .. args)
 						end
 						
-						if command == "MODE" then
-							
-							if FirstMode == false then
-							
-								if BotPassword ~= "" then
-									LOG("[IRChat] Authenticating with nickserv")
-									IRChatConnection:Send("PRIVMSG nickserv :identify " .. BotPassword .."\r\n")
-								end
-								if debug then
-									LOG("[IRChat] Sending JOIN")
-								end
-								a_Link:Send("JOIN " .. BotChannel .. "\r\n")
-								FirstMode = true 
-							
+						if command == "376" or command == "422" then
+							if BotPassword ~= "" then
+								LOG("[IRChat] Authenticating with nickserv")
+								IRChatConnection:Send("PRIVMSG nickserv :identify " .. BotPassword .."\r\n")
 							end
-							
+							if debug then
+								LOG("[IRChat] Sending JOIN")
+							end
+							a_Link:Send("JOIN " .. BotChannel .. "\r\n")
 						end
 						
 						if command == "JOIN" then
@@ -199,7 +189,7 @@ function IRCConnect()
 								JoinedChannel = true
 								LOG("[IRChat] Joined " .. split(args, " ")[1])
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-join", IRCTag, "", shortsender .. " has joined " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-join", IRCTag, "", shortsender .. " has joined " .. split(args, " ")[1])
 							end
 							
 						end
@@ -214,7 +204,7 @@ function IRCConnect()
 								end
 								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. split(args, " ")[1])
 							end
 						
 						end
@@ -223,7 +213,7 @@ function IRCConnect()
 							if shortsender == BotNick then
 								JoinedChannel = false
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. BotChannel)
+								SendFromEndpoint(split(args, " ")[1] .. "-leave", IRCTag, "", shortsender .. " has left " .. split(args, " ")[1])
 							end
 						end
 						
@@ -237,7 +227,7 @@ function IRCConnect()
 								end
 								a_Link:Send("JOIN " .. split(args, " ")[1] .. "\r\n")
 							else
-								SendFromEndpoint(split(args, " ")[1] .. "-kick", IRCTag, "", split(args, " ")[2] .. " has been kicked from " .. BotChannel .. " by " .. shortsender .. "!")
+								SendFromEndpoint(split(args, " ")[1] .. "-kick", IRCTag, "", split(args, " ")[2] .. " has been kicked from " .. split(args, " ")[1] .. " by " .. shortsender .. "!")
 							end
 							
 						end
