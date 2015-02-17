@@ -14,17 +14,15 @@ g_PluginInfo =
 	
 	IRCCommands =
 	{
+		help =
+		{
+			HelpString =  "Displays this list",
+			Handler = HandleIRCHelp,
+		},
 		players =
 		{
 			HelpString =  "Lists online players",
 			Handler = HandleIRCPlayers,
-			ParameterCombinations =
-			{
-				{
-					Params = "",
-					Help = "Lists online players",
-				},
-			},
 		},
 	},
 	

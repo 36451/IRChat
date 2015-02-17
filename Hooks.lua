@@ -1,3 +1,32 @@
+function HookingError(PluginName, ErrorCode, ErrorDesc, ErrorResult)
+	LOGINFO("[IRChat] Couldn't hook into " .. PluginName)
+	LOGINFO("[IRChat] Error " .. ErrorCode .. ": " .. ErrorDesc)
+	LOGINFO("[IRChat] " .. ErrorResult)
+end
+
+function OnPluginsLoaded() 
+	-- Hook into Core's webchat callback
+	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
+	if CoreHandle ~= nil then
+		if CoreHandle:GetVersion() >= 15 then
+			if cPluginManager:CallPlugin("Core", "AddWebChatCallback", "IRChat", "OnWebChat") == true then
+				HookedIntoCore = true
+				LOG("[IRChat] Hooked into Core")
+			else 
+				HookingError("Core", 1, "CallPlugin didn't return true", "Web endpoint will be unavialable")
+			end
+		else
+			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web endpoint will be unavialable")
+		end
+	else
+		HookingError("Core", 3, "Core not found", "Web endpoint will be unavialable")
+	end	
+	-- Auto connect on startup if enabled
+	if AutoConnect == true then
+		IRCConnect()
+	end
+end
+
 function OnPlayerDestroyed(Player)
 	if Player == nil then
 		return false

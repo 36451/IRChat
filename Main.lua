@@ -28,35 +28,6 @@ function Initialize(Plugin)
 	return true
 end
 
-function HookingError(PluginName, ErrorCode, ErrorDesc, ErrorResult)
-	LOGINFO("[IRChat] Couldn't hook into " .. PluginName)
-	LOGINFO("[IRChat] Error " .. ErrorCode .. ": " .. ErrorDesc)
-	LOGINFO("[IRChat] " .. ErrorResult)
-end
-
-function OnPluginsLoaded() 
-	-- Hook into Core's webchat callback
-	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
-	if CoreHandle ~= nil then
-		if CoreHandle:GetVersion() >= 15 then
-			if cPluginManager:CallPlugin("Core", "AddWebChatCallback", "IRChat", "OnWebChat") == true then
-				HookedIntoCore = true
-				LOG("[IRChat] Hooked into Core")
-			else 
-				HookingError("Core", 1, "CallPlugin didn't return true", "Web endpoint will be unavialable")
-			end
-		else
-			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web endpoint will be unavialable")
-		end
-	else
-		HookingError("Core", 3, "Core not found", "Web endpoint will be unavialable")
-	end	
-	-- Auto connect on startup if enabled
-	if AutoConnect == true then
-		IRCConnect()
-	end
-end
-
 function OnDisable()
 	if IsConnected == true then
 		IRCDisconnect()
@@ -379,12 +350,16 @@ function SendToEndpoint(Endpoint, Tag, From, Message)
 		return false
 	end
 	
-	if From == "" then
-		IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .. Message .."\r\n")
-	else
-		IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .."(" .. From .. ") " .. Message .."\r\n")
+	-- Support for multiline messages
+	local lines = split(Message, "\r\n")
+	for k, line in pairs(lines) do
+		if From == "" then
+			IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .. line .."\r\n")
+		else
+			IRChatConnection:Send("PRIVMSG " .. Endpoint .. " :" .. Tag .."(" .. From .. ") " .. line .."\r\n")
+		end
 	end
-	
+		
 	return true
 	
 end
