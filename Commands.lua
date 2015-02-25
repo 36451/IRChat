@@ -8,6 +8,20 @@ function HandleConsoleIrcDisconnect(Split, Player)
 	return true
 end
 
+function HandleConsoleIrcRaw(Split, Player)
+	if IsConnected == false then
+		LOG("[IRChat] You need to connect first!")
+		return true
+	end
+	local text = ""
+	for i = 2, #Split do
+		text = text .. Split[i] .. " "
+	end
+	text = string.sub(text, 1, #text - 1)
+	IRChatConnection:Send(text .. "\r\n")
+	return true
+end
+
 function HandleIRCPlayers(Caller, Params)
 	local server = cRoot:Get():GetServer()
 	if server:GetNumPlayers() == 0 then

@@ -54,6 +54,19 @@ g_PluginInfo =
 			},
 		},
 		
+		ircr =
+		{
+			HelpString = "Sends a raw irc command",
+			Handler = HandleConsoleIrcRaw,
+			ParameterCombinations =
+			{
+				{
+					Params = "RawCommand",
+					Help = "Sends a raw irc command",
+				},
+			},
+		},
+		
 	},
 }
 

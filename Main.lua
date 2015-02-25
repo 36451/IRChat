@@ -2,10 +2,15 @@ IRChatConnection = false
 IsConnected      = false
 JoinedChannel    = false
 HookedIntoCore   = false
+Callbacks = {}
 
 function Initialize(Plugin)
 	Plugin:SetName( "IRChat" )
-	Plugin:SetVersion( 3 )
+	Plugin:SetVersion( 4 )
+	
+	-- Initialize all avialable callbacks
+	Callbacks["OnSendFromEndpoint"] = {}
+	Callbacks["OnSendToEndpoint"]   = {}
 	
 	-- Register for all hooks needed
 	cPluginManager:AddHook(cPluginManager.HOOK_CHAT,                  OnChat)
@@ -34,6 +39,44 @@ function OnDisable()
 	end
 	LOG("[IRChat] Disabled")
 end
+
+-- Adds a callback
+-- Avialable ones:
+--    OnSendFromEndpoint(Endpoint, Tag, From, Message) ; Plugin will receive ALL messages passing through IRChat, including .commands from irc
+--    OnSendToEndpoint(Endpoint, Tag, From, Message)   ; This callback is more suited for custom endpoints
+-- One message will always generate one OnSendFromEndpoint, and anywhere from 0 to a lot of OnSendToEndpoint
+-- You can return true to prevent further actions related to the invoked function
+-- All callbacks are called before the processing begins, so plugins can change
+-- the message, endpoint it originated from, tag or player name, 
+-- (by returning values in the false, Endpoint, Tag, From, Message form - you need to specify all of them)
+-- this can also be used as a notification - in that case plugins shouldn't return anything
+function AddCallback(EventName, PluginName, FunctionName) 
+	if EventName ~= "OnSendFromEndpoint" and EventName ~= "OnSendToEndpoint" then
+		return false
+	end
+	for k, v in pairs(Callbacks[EventName]) do
+		if v[1] == PluginName and v[2] == FunctionName then
+			return false
+		end
+	end
+	table.insert(Callbacks[EventName], {PluginName, FunctionName})
+	return true
+end
+
+-- Removes a callback
+function RemoveCallback(EventName, PluginName, FunctionName) 
+	if EventName ~= "OnSendFromEndpoint" and EventName ~= "OnSendToEndpoint" then
+		return false
+	end
+	for i = #Callbacks[EventName], 0, -1 do
+		if Callbacks[EventName][i][1] == PluginName and Callbacks[EventName][i][2] == FunctionName then
+			table.remove(Callbacks[EventName], i)
+			return true
+		end
+	end
+	return false
+end
+
 
 function split(s, delimiter)
     local result = {};
@@ -274,6 +317,19 @@ function SendFromEndpoint(Endpoint, Tag, From, Message)
 		Endpoint = From .. "-chat"
 	end
 	
+	for k, v in pairs(Callbacks["OnSendFromEndpoint"]) do
+		local ret, rEndpoint, rTag, rFrom, rMessage = cPluginManager:CallPlugin(v[1], v[2], Endpoint, Tag, From, Message)
+		if ret == true then
+			return false
+		end
+		if ret == false then
+			Endpoint = rEndpoint
+			Tag = rTag
+			From = rFrom
+			Message = rMessage
+		end
+	end
+	
 	if string.find(Message, "%.") == 1 and splitto(Endpoint,"-", 1) ~= "in-game" and splitto(Endpoint,"-", 1) ~= "web" then
 		
 		local CmdResult = "Command not found."
@@ -301,6 +357,20 @@ function SendFromEndpoint(Endpoint, Tag, From, Message)
 end
 
 function SendToEndpoint(Endpoint, Tag, From, Message)
+	
+	for k, v in pairs(Callbacks["OnSendToEndpoint"]) do
+		local ret, rEndpoint, rTag, rFrom, rMessage = cPluginManager:CallPlugin(v[1], v[2], Endpoint, Tag, From, Message)
+		if ret == true then
+			-- This is kinda bad - there is no way to distinguish custom endpoint implementation from a cancelled message
+			return true
+		end
+		if ret == false then
+			Endpoint = rEndpoint
+			Tag = rTag
+			From = rFrom
+			Message = rMessage
+		end
+	end
 	
 	-- In-game chat endpoint
 	if Endpoint == "in-game" then
