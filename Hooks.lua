@@ -6,20 +6,29 @@ end
 
 function OnPluginsLoaded() 
 	-- Hook into Core's webchat callback
-	local CoreHandle = cPluginManager:Get():GetPlugin("Core")
-	if CoreHandle ~= nil then
-		if CoreHandle:GetVersion() >= 15 then
-			if cPluginManager:CallPlugin("Core", "AddWebChatCallback", "IRChat", "OnWebChat") == true then
-				HookedIntoCore = true
-				LOG("[IRChat] Hooked into Core")
-			else 
-				HookingError("Core", 1, "CallPlugin didn't return true", "Web endpoint will be unavialable")
+	if cPluginManager:Get():IsPluginLoaded("Core") then
+		cPluginManager:Get():ForEachPlugin(
+			function (PluginHandle)
+				if PluginHandle:GetName() == "Core" then
+					if PluginHandle:GetStatus() == cRoot:Get():GetPluginManager().psLoaded then
+						if PluginHandle:GetVersion() >= 15 then
+							if cPluginManager:CallPlugin("Core", "AddWebChatCallback", "IRChat", "OnWebChat") == true then
+								HookedIntoCore = true
+								LOG("[IRChat] Hooked into Core")
+							else 
+								HookingError("Core", 1, "CallPlugin didn't return true", "Web endpoint will be unavialable")
+							end
+						else
+							HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web endpoint will be unavialable")
+						end
+					else
+						HookingError("Core", 3, "Core not loaded", "Web endpoint will be unavialable")
+					end
+				end
 			end
-		else
-			HookingError("Core", 2, "Your Core is outdated, the minimum version is 15", "Web endpoint will be unavialable")
-		end
+		)
 	else
-		HookingError("Core", 3, "Core not found", "Web endpoint will be unavialable")
+		HookingError("Core", 4, "Core not found", "Web endpoint will be unavialable")
 	end	
 	-- Auto connect on startup if enabled
 	if AutoConnect == true then
